@@ -1,0 +1,16 @@
+{
+  "name": "Cubemap",
+  "textures": {
+    "posx": "/public/cubemap/sky_posx.png",
+    "negx": "/public/cubemap/sky_negx.png",
+    "posy": "/public/cubemap/sky_posy.png",
+    "negy": "/public/cubemap/sky_negy.png",
+    "posz": "/public/cubemap/sky_posz.png",
+    "negz": "/public/cubemap/sky_negz.png"
+  },
+  "minFilter": 5,
+  "magFilter": 1,
+  "anisotropy": 1,
+  "rgbm": true,
+  "prefiltered": "sky.png.png.dds"
+}

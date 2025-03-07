@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="frame-src 'self' https://www.youtube.com https://meet.google.com;;"
+    />
+    <title>Vite + React</title>
+  </head>
+  <body id="root">
+    <!-- <canvas id="application-canvas"> </canvas> -->
+    <div></div>
+    <input
+      type="file"
+      id="frameFileInput"
+      accept="image/*"
+      style="display: none"
+    />
+    <input
+      type="file"
+      id="modelFileInput"
+      accept=".glb, .gltf"
+      style="display: none"
+    />
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
