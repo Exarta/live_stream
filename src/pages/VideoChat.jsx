@@ -279,7 +279,7 @@ const configuration = {
 };
 
 // Use the appropriate signaling server URL (adjust if needed)
-const socket = io("http://172.16.15.155:5000", { transports: ["websocket"] });
+const socket = io("https://livestream-backend.tenant-7654b5-asrpods.ord1.ingress.coreweave.cloud/", { transports: ["websocket"] });
 
 function VideoChat({ style }) {
   const startButton = useRef(null);
