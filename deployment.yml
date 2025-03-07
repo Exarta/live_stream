@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: livestream-backend-deployment
+  namespace: tenant-7654b5-asrpods
+  labels:
+    app: test-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: livestream-backend
+  template:
+    metadata:
+      labels:
+        app: livestream-backend
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node.coreweave.cloud/cpu
+                    operator: In
+                    values:
+                      - intel-xeon-v3
+      containers:
+        - name: backend
+          image: exartadev/zeniva.exarta:livestream-backend-v1-asrpods
+
+          ports:
+            - containerPort: 5000
+          resources:
+            requests:
+              memory: 100Mi
+            limits:
+              memory: 1Gi
+          imagePullPolicy: Always
+      imagePullSecrets:
+        - name: dockerhub-secret
+      restartPolicy: Always
