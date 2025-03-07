@@ -158,12 +158,6 @@ const GameHome = () => {
 
         app.root.addChild(camera);
 
-        // Create Lighting
-        // const light = new pc.Entity("light");
-        // light.addComponent("light", { type: "directional" });
-        // light.setEulerAngles(45, 30, 0);
-        // app.root.addChild(light);
-
         const box = new pc.Entity("Box");
         box.addComponent("render", { type: "box" });
 
