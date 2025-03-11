@@ -41,12 +41,12 @@ jobs:
       - name: Set commit ID as an environment variable
         run: echo "COMMIT_COUNT=$(git rev-list --count HEAD)" >> $GITHUB_ENV
 
-      - name: Modify Server yml
-        uses: teunmooij/yml@v1
-        with:
-          from-file: "deployment-files/deployment.yml"
-          to-file: "deployment-files/deployment.yml"
-          merge: '{"spec.template.spec.containers[0].image": "exartadev/zeniva.exarta:livestream-backend-v${{ env.COMMIT_COUNT }}-asrpods"}'
+      # - name: Modify Server yml
+      #   uses: teunmooij/yml@v1
+      #   with:
+      #     from-file: "deployment-files/deployment.yml"
+      #     to-file: "deployment-files/deployment.yml"
+      #     merge: '{"spec.template.spec.containers[0].image": "exartadev/zeniva.exarta:livestream-backend-v${{ env.COMMIT_COUNT }}-asrpods"}'
 
       - name: Setup Kubectl
         uses: azure/setup-kubectl@v3
