@@ -598,6 +598,7 @@ import { MiniStats } from "../components/mini-stats";
 import VideoChat from "./VideoChat";
 import { ChangeColor } from "../../public/scripts/youtube";
 import { SetSkyboxDds } from "../components/set-skybox";
+import socket from "./socket";
 
 function getYoutubeEmbedSrc(url) {
   const regExp = /[?&]v=([^&#]+)/;
@@ -727,9 +728,6 @@ const GameFpsMul = () => {
         MiniStats(extendedPc, app);
         SetSkyboxDds(app);
 
-        console.log(app.scene.layers.layerList);
-        console.log(beforeWorld.id);
-
         const childPlane = new extendedPc.Entity("ChildPlane");
 
         childPlane.setLocalPosition(0, 3, -1.4391355514526367); // Position relative to the parent
@@ -748,10 +746,16 @@ const GameFpsMul = () => {
         app.root.addChild(childPlane);
 
         // Connect to Socket.io Server
-        const socket = io("http://172.16.15.155:5000", {
-          transports: ["websocket"], // 🔥 Use only WebSocket transport
-        });
+        // const socket = io("http://172.16.15.155:5000", {
+        //   transports: ["websocket"], // 🔥 Use only WebSocket transport
+        // });
         socketRef.current = socket;
+
+        socket.emit("newPlayer", {
+          name: playerData.name,
+          image: playerData.image,
+        });
+        console.log("Emitted newPlayer signal to server");
 
         socket.on("connect", () => {
           //console.log("✅ Connected to server with ID:", socket.id);
@@ -797,52 +801,6 @@ const GameFpsMul = () => {
               renderAsset: render.asset,
             });
           });
-
-          //console.log(renders[20]);
-
-          const frame02Entity = model.findByName("frame_02");
-          if (frame02Entity) {
-            // Create a texture asset
-            const textureAsset = new extendedPc.Asset(
-              "frameTexture",
-              "texture",
-              {
-                url: "/fonts/ASTERA v2.png", // Replace with your image URL
-              }
-            );
-
-            app.assets.add(textureAsset);
-
-            textureAsset.on("load", () => {
-              const frameMaterial = new extendedPc.StandardMaterial();
-
-              frameMaterial.useLighting = true;
-
-              frameMaterial.diffuseMap = textureAsset.resource;
-
-              frameMaterial.update();
-              const renderEntity = app.root.findByName("frame_02");
-
-              if (renderEntity && renderEntity.render) {
-                // If it has multiple mesh instances:
-                renderEntity.render.meshInstances.forEach((meshInstance) => {
-                  meshInstance.material = frameMaterial;
-                });
-                //console.log(`Texture applied to frame 02`);
-              } else {
-                //console.log(currentButtonIndex);
-                //console.warn(`No entity found with name: frame 02`);
-              }
-            });
-
-            textureAsset.on("error", (err) => {
-              //console.error("Error loading texture:", err);
-            });
-
-            app.assets.load(textureAsset);
-          } else {
-            //console.log("Entity 'frame_02' not found.");
-          }
 
           app.root.addChild(model);
         });
@@ -938,13 +896,9 @@ const GameFpsMul = () => {
         app.assets.add(fontAsset);
         app.assets.load(fontAsset);
         if (!fontAsset) {
-          //console.error(
-          //   "❌ Font Asset Not Found! Make sure 'Arial' font is added to PlayCanvas."
-          // );
-        }
-
-        if (fontAsset) {
-          //console.log("Font loaded");
+          console.error(
+            "❌ Font Asset Not Found! Make sure 'Arial' font is added to PlayCanvas."
+          );
         }
 
         const createRemotePlayer = (id, x, y, z, color, playerName, image) => {
@@ -1197,6 +1151,7 @@ const GameFpsMul = () => {
           left: "1rem",
           zIndex: 50,
         }}
+        playerData={playerData}
       />
     </>
   );

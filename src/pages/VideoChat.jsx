@@ -1,3 +1,5 @@
+/** This handles concurrently two video streams */
+
 // import { io } from "socket.io-client";
 // import { useRef, useEffect, useState } from "react";
 // import { FiVideo, FiVideoOff, FiMic, FiMicOff } from "react-icons/fi";
@@ -265,9 +267,630 @@
 
 // export default VideoChat;
 
+/** This handles multiple video streams */
+
 import { io } from "socket.io-client";
+// import { useRef, useEffect, useState } from "react";
+// import { FiVideo, FiVideoOff, FiMic, FiMicOff } from "react-icons/fi";
+// import socket from "./socket";
+
+// const configuration = {
+//   iceServers: [
+//     {
+//       urls: ["stun:stun1.l.google.com:19302", "stun:stun2.l.google.com:19302"],
+//     },
+//   ],
+//   iceCandidatePoolSize: 10,
+// };
+
+// // Use the appropriate signaling server URL (adjust if needed)
+// // const socket = io("http://172.16.15.155:5000", { transports: ["websocket"] });
+
+// function VideoChat({ style, playerData }) {
+//   const startButton = useRef(null);
+//   const hangupButton = useRef(null);
+//   const muteAudButton = useRef(null);
+//   const localVideo = useRef(null);
+//   const remoteVideoRefs = useRef({});
+//   const [localStream, setLocalStream] = useState(null);
+//   const [audioState, setAudioState] = useState(true);
+//   // Track connections with multiple peers
+//   const [peerConnections, setPeerConnections] = useState({});
+//   // Track remote video streams
+//   const [remoteStreams, setRemoteStreams] = useState({});
+//   // For debugging purposes
+//   const [connectionState, setConnectionState] = useState("Not connected");
+
+//   console.log("PLAYERDATA IN VIDEOCHAT", playerData);
+
+//   // Initialize buttons
+//   useEffect(() => {
+//     if (hangupButton.current) hangupButton.current.disabled = true;
+//     if (muteAudButton.current) muteAudButton.current.disabled = true;
+
+//     // Log socket connection
+//     console.log(
+//       "Socket state:",
+//       socket.connected ? "Connected" : "Disconnected"
+//     );
+//     socket.on("connect", () => {
+//       console.log("Socket connected successfully");
+//       setConnectionState("Socket connected");
+//     });
+
+//     socket.on("connect_error", (err) => {
+//       console.error("Socket connection error:", err);
+//       setConnectionState(`Socket error: ${err.message}`);
+//     });
+
+//     return () => {
+//       socket.off("connect");
+//       socket.off("connect_error");
+//     };
+//   }, []);
+
+//   // Set up remote video stream directly
+//   useEffect(() => {
+//     // This effect runs when remoteStreams changes
+//     Object.entries(remoteStreams).forEach(([peerId, stream]) => {
+//       if (remoteVideoRefs.current[peerId] && stream) {
+//         console.log(`Setting stream for peer ${peerId} to video element`);
+//         if (remoteVideoRefs.current[peerId].srcObject !== stream) {
+//           remoteVideoRefs.current[peerId].srcObject = stream;
+//         }
+//       }
+//     });
+//   }, [remoteStreams]);
+
+//   // Create a peer connection for a specific peer
+//   const createPeerConnection = async (peerId, isInitiator) => {
+//     try {
+//       console.log(
+//         `Creating peer connection with ${peerId}, initiator: ${isInitiator}`
+//       );
+//       setConnectionState(`Creating connection with ${peerId}`);
+
+//       const pc = new RTCPeerConnection(configuration);
+
+//       // Log connection state changes
+//       pc.onconnectionstatechange = () => {
+//         console.log(`Connection state with ${peerId}: ${pc.connectionState}`);
+//         setConnectionState(`Connection with ${peerId}: ${pc.connectionState}`);
+//       };
+
+//       pc.onicegatheringstatechange = () => {
+//         console.log(
+//           `ICE gathering state with ${peerId}: ${pc.iceGatheringState}`
+//         );
+//       };
+
+//       pc.oniceconnectionstatechange = () => {
+//         console.log(
+//           `ICE connection state with ${peerId}: ${pc.iceConnectionState}`
+//         );
+//       };
+
+//       // Add tracks from local stream
+//       if (localStream) {
+//         localStream.getTracks().forEach((track) => {
+//           console.log(
+//             `Adding ${track.kind} track to peer connection with ${peerId}`
+//           );
+//           pc.addTrack(track, localStream);
+//         });
+//       } else {
+//         console.warn(
+//           `No local stream available when creating peer connection with ${peerId}`
+//         );
+//       }
+
+//       // Handle ICE candidates
+//       pc.onicecandidate = (event) => {
+//         if (event.candidate) {
+//           console.log(`Sending ICE candidate to ${peerId}`);
+//           socket.emit("rtcSignal", {
+//             peerId: peerId,
+//             signal: {
+//               type: "candidate",
+//               candidate: event.candidate,
+//             },
+//           });
+//         }
+//       };
+
+//       // Handle incoming tracks (remote video/audio)
+//       pc.ontrack = (event) => {
+//         console.log(`Received ${event.track.kind} track from ${peerId}`);
+//         setConnectionState(`Received ${event.track.kind} track from ${peerId}`);
+
+//         if (event.streams && event.streams[0]) {
+//           console.log(
+//             `Setting remote stream for ${peerId} - track type: ${event.track.kind}`
+//           );
+
+//           // Create a new object to trigger a re-render
+//           setRemoteStreams((prev) => ({
+//             ...prev,
+//             [peerId]: event.streams[0],
+//           }));
+//         }
+//       };
+
+//       // If we're the initiator, create and send an offer
+//       if (isInitiator) {
+//         const offer = await pc.createOffer({
+//           offerToReceiveAudio: true,
+//           offerToReceiveVideo: true,
+//         });
+//         await pc.setLocalDescription(offer);
+//         console.log(`Sending offer to ${peerId}`);
+//         socket.emit("rtcSignal", {
+//           peerId: peerId,
+//           signal: {
+//             type: "offer",
+//             sdp: pc.localDescription,
+//           },
+//         });
+//       }
+
+//       // Update peer connections state
+//       setPeerConnections((prev) => ({
+//         ...prev,
+//         [peerId]: pc,
+//       }));
+
+//       return pc;
+//     } catch (error) {
+//       console.error(`Error creating peer connection with ${peerId}:`, error);
+//       setConnectionState(`Error with ${peerId}: ${error.message}`);
+//       return null;
+//     }
+//   };
+
+//   // Handle receiving an offer
+//   const handleOffer = async (peerId, offer) => {
+//     try {
+//       console.log(`Handling offer from ${peerId}`);
+//       setConnectionState(`Received offer from ${peerId}`);
+//       let pc = peerConnections[peerId];
+
+//       if (!pc) {
+//         pc = await createPeerConnection(peerId, false);
+//       }
+
+//       if (pc) {
+//         await pc.setRemoteDescription(new RTCSessionDescription(offer));
+//         const answer = await pc.createAnswer();
+//         await pc.setLocalDescription(answer);
+//         console.log(`Sending answer to ${peerId}`);
+//         socket.emit("rtcSignal", {
+//           peerId: peerId,
+//           signal: {
+//             type: "answer",
+//             sdp: pc.localDescription,
+//           },
+//         });
+//       } else {
+//         console.error(`Failed to create peer connection for ${peerId}`);
+//       }
+//     } catch (error) {
+//       console.error(`Error handling offer from ${peerId}:`, error);
+//       setConnectionState(`Error with offer from ${peerId}: ${error.message}`);
+//     }
+//   };
+
+//   // Handle receiving an answer
+//   const handleAnswer = async (peerId, answer) => {
+//     try {
+//       console.log(`Handling answer from ${peerId}`);
+//       setConnectionState(`Received answer from ${peerId}`);
+//       const pc = peerConnections[peerId];
+
+//       if (pc) {
+//         await pc.setRemoteDescription(new RTCSessionDescription(answer));
+//         console.log(`Set remote description for ${peerId} successfully`);
+//       } else {
+//         console.error(`No peer connection found for ${peerId}`);
+//       }
+//     } catch (error) {
+//       console.error(`Error handling answer from ${peerId}:`, error);
+//       setConnectionState(`Error with answer from ${peerId}: ${error.message}`);
+//     }
+//   };
+
+//   // Handle ICE candidate
+//   const handleCandidate = async (peerId, candidate) => {
+//     try {
+//       console.log(`Handling ICE candidate for ${peerId}`);
+//       const pc = peerConnections[peerId];
+
+//       if (pc) {
+//         await pc.addIceCandidate(new RTCIceCandidate(candidate));
+//         console.log(`Added ICE candidate for ${peerId} successfully`);
+//       } else {
+//         console.error(
+//           `No peer connection found for ${peerId} to add ICE candidate`
+//         );
+//       }
+//     } catch (error) {
+//       console.error(`Error handling ICE candidate for ${peerId}:`, error);
+//     }
+//   };
+
+//   // Hang up call and reset state
+//   const hangup = () => {
+//     console.log("Hanging up all connections");
+//     // Close all peer connections
+//     Object.entries(peerConnections).forEach(([peerId, pc]) => {
+//       pc.close();
+//     });
+
+//     // Reset states
+//     setPeerConnections({});
+//     setRemoteStreams({});
+//     setConnectionState("Disconnected");
+
+//     // Stop local stream tracks
+//     if (localStream) {
+//       localStream.getTracks().forEach((track) => track.stop());
+//       setLocalStream(null);
+//     }
+
+//     // Reset UI
+//     if (startButton.current) startButton.current.disabled = false;
+//     if (hangupButton.current) hangupButton.current.disabled = true;
+//     if (muteAudButton.current) muteAudButton.current.disabled = true;
+//   };
+
+//   // Start call by getting user media
+//   const startCall = async () => {
+//     try {
+//       console.log("Starting call - requesting user media");
+//       setConnectionState("Requesting media access");
+//       const stream = await navigator.mediaDevices.getUserMedia({
+//         video: true,
+//         audio: { echoCancellation: true },
+//       });
+
+//       console.log(
+//         "Media access granted:",
+//         stream.getTracks().map((t) => t.kind)
+//       );
+//       setLocalStream(stream);
+//       setConnectionState("Media access granted");
+
+//       if (localVideo.current) {
+//         console.log("Setting local video source");
+//         localVideo.current.srcObject = stream;
+//       }
+
+//       // Emit to server that we're ready for connections
+//       // socket.emit("newPlayer", {
+//       //   name: playerData.name,
+//       //   image: playerData.image,
+//       // });
+//       // console.log("Emitted newPlayer signal to server");
+
+//       socket.on("existingPlayers", (data) => {
+//         console.log("Existing Players: ", data);
+//       });
+
+//       // UI updates
+//       if (startButton.current) startButton.current.disabled = true;
+//       if (hangupButton.current) hangupButton.current.disabled = false;
+//       if (muteAudButton.current) muteAudButton.current.disabled = false;
+//     } catch (error) {
+//       console.error("Error accessing media devices:", error);
+//       setConnectionState(`Media error: ${error.message}`);
+//     }
+//   };
+
+//   // Toggle audio
+//   const muteAudio = () => {
+//     if (localStream && localStream.getAudioTracks().length > 0) {
+//       localStream.getAudioTracks()[0].enabled = !audioState;
+//       setAudioState(!audioState);
+//       console.log(`Audio ${audioState ? "muted" : "unmuted"}`);
+//     }
+//   };
+
+//   // Setup socket listeners for WebRTC signaling
+//   useEffect(() => {
+//     console.log("✅ Initializing useEffect for socket events...");
+//     // When we get a list of existing peers in the room
+//     socket.on("existingPeers", async (peerIds) => {
+//       console.log("Existing peers:", peerIds);
+//       setConnectionState(`Found ${peerIds.length} existing peers`);
+//       // Create connections with each existing peer
+//       for (const peerId of peerIds) {
+//         await createPeerConnection(peerId, true);
+//       }
+//     });
+
+//     // Handle WebRTC signaling messages
+//     socket.on("rtcSignal", async (data) => {
+//       console.log(`Received signal from ${data.from}:`, data.signal.type);
+//       const { from, signal } = data;
+
+//       switch (signal.type) {
+//         case "offer":
+//           await handleOffer(from, signal.sdp);
+//           break;
+//         case "answer":
+//           await handleAnswer(from, signal.sdp);
+//           break;
+//         case "candidate":
+//           await handleCandidate(from, signal.candidate);
+//           break;
+//         default:
+//           console.log("Unknown signal type:", signal.type);
+//       }
+//     });
+
+//     // Handle peers leaving
+//     socket.on("playerLeft", (peerId) => {
+//       console.log(`Peer ${peerId} left`);
+//       setConnectionState(`Peer ${peerId} left`);
+
+//       // Close the peer connection
+//       if (peerConnections[peerId]) {
+//         peerConnections[peerId].close();
+//       }
+
+//       // Update states to remove the peer
+//       setPeerConnections((prev) => {
+//         const newConnections = { ...prev };
+//         delete newConnections[peerId];
+//         return newConnections;
+//       });
+
+//       setRemoteStreams((prev) => {
+//         const newStreams = { ...prev };
+//         delete newStreams[peerId];
+//         return newStreams;
+//       });
+//     });
+
+//     // Player joined notification
+//     socket.on("playerJoined", (player) => {
+//       console.log("Player joined:", player);
+//       setConnectionState(`Player ${player.id} joined`);
+//     });
+
+//     // Cleanup
+//     return () => {
+//       console.log("🔄 Cleaning up socket listeners...");
+//       socket.off("existingPeers");
+//       socket.off("rtcSignal");
+//       socket.off("playerLeft");
+//       socket.off("playerJoined");
+//     };
+//   }, [peerConnections, localStream]);
+
+//   // Create ref callback for remote videos
+//   const setRemoteVideoRef = (peerId) => (element) => {
+//     if (element) {
+//       remoteVideoRefs.current[peerId] = element;
+//       // If we already have a stream for this peer, set it immediately
+//       const stream = remoteStreams[peerId];
+//       if (stream && element.srcObject !== stream) {
+//         console.log(`Setting stream for ${peerId} in ref callback`);
+//         element.srcObject = stream;
+//       }
+//     }
+//   };
+
+//   return (
+//     <main style={style}>
+//       <div
+//         style={{
+//           marginBottom: "10px",
+//           padding: "5px",
+//           backgroundColor: "#f8f9fa",
+//           borderRadius: "4px",
+//         }}
+//       >
+//         Status: {connectionState}
+//       </div>
+
+//       <div
+//         className="videos-section"
+//         style={{ display: "flex", flexDirection: "column", gap: "10px" }}
+//       >
+//         {/* Local Video at the top */}
+//         <div
+//           className="local-video-container"
+//           style={{
+//             minHeight: "120px",
+//             border: "1px solid #ddd",
+//             borderRadius: "4px",
+//             overflow: "hidden",
+//           }}
+//         >
+//           <h3
+//             style={{
+//               padding: "5px",
+//               margin: "0",
+//               backgroundColor: "#e9ecef",
+//               fontSize: "14px",
+//             }}
+//           >
+//             Your Video
+//           </h3>
+//           <video
+//             ref={localVideo}
+//             className="video-item border-none"
+//             autoPlay
+//             playsInline
+//             muted={true}
+//             style={{ width: "100%", height: "120px", objectFit: "cover" }}
+//           />
+//         </div>
+
+//         {/* Remote Videos in a grid */}
+//         <div
+//           className="remote-videos-container"
+//           style={{
+//             border: "1px solid #ddd",
+//             borderRadius: "4px",
+//             padding: "5px",
+//             backgroundColor: "#f0f0f0",
+//           }}
+//         >
+//           <h3
+//             style={{
+//               padding: "5px",
+//               margin: "0",
+//               backgroundColor: "#e9ecef",
+//               fontSize: "14px",
+//             }}
+//           >
+//             Remote Videos ({Object.keys(remoteStreams).length})
+//           </h3>
+
+//           {Object.keys(remoteStreams).length > 0 ? (
+//             <div
+//               className="remote-videos-grid"
+//               style={{
+//                 display: "grid",
+//                 gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
+//                 gap: "10px",
+//                 padding: "10px",
+//               }}
+//             >
+//               {Object.entries(remoteStreams).map(([peerId]) => (
+//                 <div
+//                   key={peerId}
+//                   style={{
+//                     border: "1px solid #ddd",
+//                     borderRadius: "4px",
+//                     overflow: "hidden",
+//                   }}
+//                 >
+//                   <div
+//                     style={{
+//                       padding: "2px 5px",
+//                       backgroundColor: "#dee2e6",
+//                       fontSize: "12px",
+//                     }}
+//                   >
+//                     Peer: {peerId}
+//                   </div>
+//                   <video
+//                     ref={setRemoteVideoRef(peerId)}
+//                     className="video-item"
+//                     autoPlay
+//                     playsInline
+//                     style={{
+//                       width: "100%",
+//                       height: "150px",
+//                       objectFit: "cover",
+//                     }}
+//                   />
+//                 </div>
+//               ))}
+//             </div>
+//           ) : (
+//             <div
+//               className="no-remote"
+//               style={{
+//                 height: "100px",
+//                 display: "flex",
+//                 alignItems: "center",
+//                 justifyContent: "center",
+//                 color: "#666",
+//               }}
+//             >
+//               Waiting for peers to connect...
+//             </div>
+//           )}
+//         </div>
+//       </div>
+
+//       <div
+//         className="btn"
+//         style={{
+//           marginTop: "10px",
+//           display: "flex",
+//           justifyContent: "center",
+//           gap: "10px",
+//         }}
+//       >
+//         <button
+//           className="btn-item btn-start"
+//           ref={startButton}
+//           onClick={startCall}
+//           style={{
+//             padding: "8px 16px",
+//             backgroundColor: "#4CAF50",
+//             color: "white",
+//             border: "none",
+//             borderRadius: "4px",
+//             cursor: "pointer",
+//           }}
+//         >
+//           <FiVideo style={{ marginRight: "5px" }} /> Start
+//         </button>
+//         <button
+//           className="btn-item btn-end"
+//           ref={hangupButton}
+//           onClick={hangup}
+//           style={{
+//             padding: "8px 16px",
+//             backgroundColor: "#f44336",
+//             color: "white",
+//             border: "none",
+//             borderRadius: "4px",
+//             cursor: "pointer",
+//           }}
+//         >
+//           <FiVideoOff style={{ marginRight: "5px" }} /> End
+//         </button>
+//         <button
+//           className="btn-item btn-audio"
+//           ref={muteAudButton}
+//           onClick={muteAudio}
+//           style={{
+//             padding: "8px 16px",
+//             backgroundColor: "#2196F3",
+//             color: "white",
+//             border: "none",
+//             borderRadius: "4px",
+//             cursor: "pointer",
+//           }}
+//         >
+//           {audioState ? (
+//             <FiMic style={{ marginRight: "5px" }} />
+//           ) : (
+//             <FiMicOff style={{ marginRight: "5px" }} />
+//           )}
+//           {audioState ? "Mute" : "Unmute"}
+//         </button>
+//       </div>
+
+//       <div style={{ marginTop: "10px" }}>
+//         <p style={{ fontSize: "12px", margin: "5px 0", color: "#666" }}>
+//           {Object.keys(peerConnections).length > 0
+//             ? `Connected peers: ${Object.keys(peerConnections).join(", ")}`
+//             : "No peer connections"}
+//         </p>
+//         <p style={{ fontSize: "12px", margin: "5px 0", color: "#666" }}>
+//           {Object.keys(remoteStreams).length > 0
+//             ? `Remote streams: ${Object.keys(remoteStreams).join(", ")}`
+//             : "No remote streams"}
+//         </p>
+//       </div>
+//     </main>
+//   );
+// }
+
+// export default VideoChat;
+
+/** Trying for mobile access camera control */
+
 import { useRef, useEffect, useState } from "react";
-import { FiVideo, FiVideoOff, FiMic, FiMicOff } from "react-icons/fi";
+import { FiVideo, FiVideoOff, FiMic, FiMicOff, FiCamera } from "react-icons/fi";
+import socket from "./socket";
 
 const configuration = {
   iceServers: [
@@ -278,10 +901,7 @@ const configuration = {
   iceCandidatePoolSize: 10,
 };
 
-// Use the appropriate signaling server URL (adjust if needed)
-const socket = io("http://172.16.15.155:5000", { transports: ["websocket"] });
-
-function VideoChat({ style }) {
+function VideoChat({ style, playerData }) {
   const startButton = useRef(null);
   const hangupButton = useRef(null);
   const muteAudButton = useRef(null);
@@ -295,6 +915,12 @@ function VideoChat({ style }) {
   const [remoteStreams, setRemoteStreams] = useState({});
   // For debugging purposes
   const [connectionState, setConnectionState] = useState("Not connected");
+
+  // --- ADD: camera switching state (front vs. back) ---
+  const [usingFrontCamera, setUsingFrontCamera] = useState(true);
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+  console.log("PLAYERDATA IN VIDEOCHAT", playerData);
 
   // Initialize buttons
   useEffect(() => {
@@ -540,10 +1166,11 @@ function VideoChat({ style }) {
     try {
       console.log("Starting call - requesting user media");
       setConnectionState("Requesting media access");
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
+      const constraints = {
+        video: { facingMode: usingFrontCamera ? "user" : "environment" },
         audio: { echoCancellation: true },
-      });
+      };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
 
       console.log(
         "Media access granted:",
@@ -556,10 +1183,6 @@ function VideoChat({ style }) {
         console.log("Setting local video source");
         localVideo.current.srcObject = stream;
       }
-
-      // Emit to server that we're ready for connections
-      socket.emit("newPlayer", { name: "User", image: new ArrayBuffer(0) });
-      console.log("Emitted newPlayer signal to server");
 
       // UI updates
       if (startButton.current) startButton.current.disabled = true;
@@ -580,8 +1203,79 @@ function VideoChat({ style }) {
     }
   };
 
+  // Switch camera (front/back) if on mobile
+  const switchCamera = async () => {
+    if (!localStream) {
+      console.warn("No local stream to switch camera");
+      return;
+    }
+
+    // Stop existing video track(s)
+    localStream.getVideoTracks().forEach((track) => {
+      track.stop();
+      localStream.removeTrack(track);
+    });
+
+    // Request new stream with the opposite facingMode
+    const newFacingMode = usingFrontCamera ? "environment" : "user";
+    try {
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: newFacingMode },
+        audio: { echoCancellation: true },
+      });
+
+      // Replace local stream with new stream
+      setLocalStream(newStream);
+      if (localVideo.current) {
+        localVideo.current.srcObject = newStream;
+      }
+
+      // For each peer connection, replace the old video track with the new one
+      Object.entries(peerConnections).forEach(([peerId, pc]) => {
+        // remove old senders
+        const senders = pc.getSenders();
+        senders.forEach((sender) => {
+          if (sender.track && sender.track.kind === "video") {
+            pc.removeTrack(sender);
+          }
+        });
+
+        // add new tracks
+        newStream.getVideoTracks().forEach((track) => {
+          pc.addTrack(track, newStream);
+        });
+
+        // optionally renegotiate
+        // If you want to ensure the remote side sees your new camera,
+        // you might need to create a new offer and setLocalDescription.
+        // We'll do a simple approach:
+        (async () => {
+          try {
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            socket.emit("rtcSignal", {
+              peerId,
+              signal: {
+                type: "offer",
+                sdp: pc.localDescription,
+              },
+            });
+          } catch (err) {
+            console.error("Error renegotiating camera switch:", err);
+          }
+        })();
+      });
+
+      setUsingFrontCamera(!usingFrontCamera);
+      console.log("Switched camera to", newFacingMode);
+    } catch (error) {
+      console.error("Error switching camera:", error);
+    }
+  };
+
   // Setup socket listeners for WebRTC signaling
   useEffect(() => {
+    console.log("✅ Initializing useEffect for socket events...");
     // When we get a list of existing peers in the room
     socket.on("existingPeers", async (peerIds) => {
       console.log("Existing peers:", peerIds);
@@ -644,6 +1338,7 @@ function VideoChat({ style }) {
 
     // Cleanup
     return () => {
+      console.log("🔄 Cleaning up socket listeners...");
       socket.off("existingPeers");
       socket.off("rtcSignal");
       socket.off("playerLeft");
@@ -709,6 +1404,24 @@ function VideoChat({ style }) {
             muted={true}
             style={{ width: "100%", height: "120px", objectFit: "cover" }}
           />
+
+          {/* Only show Switch Camera button if on mobile */}
+          {isMobile && localStream && (
+            <button
+              onClick={switchCamera}
+              style={{
+                margin: "5px",
+                backgroundColor: "#ffc107",
+                border: "none",
+                borderRadius: "4px",
+                padding: "8px 16px",
+                cursor: "pointer",
+              }}
+            >
+              <FiCamera style={{ marginRight: "5px" }} />
+              Switch Camera
+            </button>
+          )}
         </div>
 
         {/* Remote Videos in a grid */}
