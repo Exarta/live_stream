@@ -746,9 +746,15 @@ const GameFpsMul = () => {
         app.root.addChild(childPlane);
 
         // Connect to Socket.io Server
+<<<<<<< HEAD
         // const socket = io("http://172.16.15.155:5000", {
         //   transports: ["websocket"], // 🔥 Use only WebSocket transport
         // });
+=======
+        const socket = io("https://livestream-backend.tenant-7654b5-asrpods.ord1.ingress.coreweave.cloud/", {
+          transports: ["websocket"], // 🔥 Use only WebSocket transport
+        });
+>>>>>>> 618a8980e41744e96a2878522b89c39076f0e956
         socketRef.current = socket;
 
         socket.emit("newPlayer", {

@@ -901,7 +901,14 @@ const configuration = {
   iceCandidatePoolSize: 10,
 };
 
+<<<<<<< HEAD
 function VideoChat({ style, playerData }) {
+=======
+// Use the appropriate signaling server URL (adjust if needed)
+const socket = io("https://livestream-backend.tenant-7654b5-asrpods.ord1.ingress.coreweave.cloud/", { transports: ["websocket"] });
+
+function VideoChat({ style }) {
+>>>>>>> 618a8980e41744e96a2878522b89c39076f0e956
   const startButton = useRef(null);
   const hangupButton = useRef(null);
   const muteAudButton = useRef(null);
