@@ -24,8 +24,6 @@ jobs:
 
       - name: Build and push server Docker image
         run: |
-          ls -l
-          cd "backend"
           docker build -t exartadev/zeniva.exarta:livestream-backend-v${COMMIT_COUNT}-asrpods .
           docker push exartadev/zeniva.exarta:livestream-backend-v${COMMIT_COUNT}-asrpods
 
