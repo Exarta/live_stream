@@ -24,7 +24,6 @@ jobs:
 
       - name: Build and push client Docker image
         run: |
-          cd "backend"
           docker build -t exartadev/zeniva.exarta:livestream-frontend-v${COMMIT_COUNT}-asrpods .
           docker push exartadev/zeniva.exarta:livestream-frontend-v${COMMIT_COUNT}-asrpods
 
